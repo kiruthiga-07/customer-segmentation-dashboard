@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from clustering import *
+import os
 
 st.set_page_config(
     page_title="Customer Segmentation",
@@ -18,20 +19,37 @@ file = st.file_uploader(
     type=["csv"]
 )
 
-if file is None:
-    st.warning("Upload a CSV file to continue")
+
+# ---------- Load data ----------
+
+default_path = os.path.join(
+    "data",
+    "customers.csv"
+)
+
+if file is not None:
+
+    df = pd.read_csv(file)
+    st.info("Using uploaded file")
+
+elif os.path.exists(default_path):
+
+    df = pd.read_csv(default_path)
+    st.info("Using default dataset")
+
+else:
+
+    st.error("No dataset found")
     st.stop()
 
-df = pd.read_csv(file)
 
-
-# ---------- Show dataset ----------
+# ---------- Show ----------
 
 st.subheader("Dataset")
 st.write(df.head())
 
 
-# ---------- Feature selection ----------
+# ---------- Features ----------
 
 features = st.multiselect(
     "Select Features",
@@ -40,7 +58,6 @@ features = st.multiselect(
 )
 
 if len(features) == 0:
-    st.error("Select at least one column")
     st.stop()
 
 data = df[features]
@@ -76,12 +93,12 @@ if st.button("Run Clustering"):
 
     df["Cluster"] = labels
 
-    st.success("Clustering Done")
+    st.success("Done")
 
     st.write(df)
 
 
-    # ---------- PCA ----------
+    # PCA
 
     pca_data = apply_pca(data)
 
@@ -93,13 +110,10 @@ if st.button("Run Clustering"):
         c=labels
     )
 
-    plt.xlabel("PCA 1")
-    plt.ylabel("PCA 2")
-
     st.pyplot(plt)
 
 
-    # ---------- Statistics ----------
+    # Stats
 
     st.subheader("Cluster Statistics")
 
@@ -107,15 +121,14 @@ if st.button("Run Clustering"):
         include=["int64", "float64"]
     )
 
-    if "Cluster" in df.columns:
-        stats = numeric_df.groupby(
-            df["Cluster"]
-        ).mean()
+    stats = numeric_df.groupby(
+        df["Cluster"]
+    ).mean()
 
-        st.write(stats)
+    st.write(stats)
 
 
-    # ---------- Download ----------
+    # Download
 
     csv = df.to_csv(index=False)
 
