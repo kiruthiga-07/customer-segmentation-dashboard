@@ -2,37 +2,36 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from clustering import *
-import os
 
-st.set_page_config(page_title="Customer Segmentation", layout="wide")
+st.set_page_config(
+    page_title="Customer Segmentation",
+    layout="wide"
+)
 
 st.title("Customer Segmentation Dashboard")
 
-# -------- Load default dataset --------
 
-default_path = os.path.join("data", "customers.csv")
+# ---------- Upload ----------
 
-file = st.file_uploader("Upload CSV (optional)", type=["csv"])
+file = st.file_uploader(
+    "Upload CSV (optional)",
+    type=["csv"]
+)
 
-if file is not None:
-    df = pd.read_csv(file)
-
-elif os.path.exists(default_path):
-    df = pd.read_csv(default_path)
-    st.info("Using default dataset")
-
-else:
+if file is None:
     st.warning("Upload a CSV file to continue")
     st.stop()
 
+df = pd.read_csv(file)
 
-# -------- Show data --------
+
+# ---------- Show dataset ----------
 
 st.subheader("Dataset")
 st.write(df.head())
 
 
-# -------- Feature selection --------
+# ---------- Feature selection ----------
 
 features = st.multiselect(
     "Select Features",
@@ -47,17 +46,22 @@ if len(features) == 0:
 data = df[features]
 
 
-# -------- Algorithm --------
+# ---------- Algorithm ----------
 
 algo = st.selectbox(
     "Algorithm",
     ["KMeans", "Hierarchical", "DBSCAN"]
 )
 
-k = st.slider("Clusters", 2, 6, 3)
+k = st.slider(
+    "Clusters",
+    2,
+    6,
+    3
+)
 
 
-# -------- Run --------
+# ---------- Run ----------
 
 if st.button("Run Clustering"):
 
@@ -76,7 +80,8 @@ if st.button("Run Clustering"):
 
     st.write(df)
 
-    # PCA
+
+    # ---------- PCA ----------
 
     pca_data = apply_pca(data)
 
@@ -88,19 +93,29 @@ if st.button("Run Clustering"):
         c=labels
     )
 
+    plt.xlabel("PCA 1")
+    plt.ylabel("PCA 2")
+
     st.pyplot(plt)
 
-    # Stats
+
+    # ---------- Statistics ----------
 
     st.subheader("Cluster Statistics")
 
-    numeric_df = df.select_dtypes(include=["int64", "float64"])
+    numeric_df = df.select_dtypes(
+        include=["int64", "float64"]
+    )
 
-st.write(
-    numeric_df.groupby(df["Cluster"]).mean()
-)
+    if "Cluster" in df.columns:
+        stats = numeric_df.groupby(
+            df["Cluster"]
+        ).mean()
 
-    # Download
+        st.write(stats)
+
+
+    # ---------- Download ----------
 
     csv = df.to_csv(index=False)
 
