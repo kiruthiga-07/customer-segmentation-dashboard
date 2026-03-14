@@ -37,8 +37,12 @@ st.write(df.head())
 features = st.multiselect(
     "Select Features",
     df.columns,
-    default=df.columns[1:]
+    default=list(df.columns)
 )
+
+if len(features) == 0:
+    st.error("Select at least one column")
+    st.stop()
 
 data = df[features]
 
