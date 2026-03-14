@@ -94,7 +94,11 @@ if st.button("Run Clustering"):
 
     st.subheader("Cluster Statistics")
 
-    st.write(df.groupby("Cluster").mean())
+    numeric_df = df.select_dtypes(include=["int64", "float64"])
+
+st.write(
+    numeric_df.groupby(df["Cluster"]).mean()
+)
 
     # Download
 
