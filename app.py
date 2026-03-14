@@ -2,77 +2,102 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from clustering import *
+import os
 
 st.set_page_config(page_title="Customer Segmentation", layout="wide")
 
-def load_css():
-    with open("assets/style.css") as f:
-        st.markdown(
-            f"<style>{f.read()}</style>",
-            unsafe_allow_html=True
-        )
-
-load_css()
-
 st.title("Customer Segmentation Dashboard")
 
-file = st.file_uploader("Upload CSV", type=["csv"])
+# -------- Load default dataset --------
 
-if file:
+default_path = os.path.join("data", "customers.csv")
+
+file = st.file_uploader("Upload CSV (optional)", type=["csv"])
+
+if file is not None:
     df = pd.read_csv(file)
 
-    st.write(df.head())
+elif os.path.exists(default_path):
+    df = pd.read_csv(default_path)
+    st.info("Using default dataset")
 
-    features = st.multiselect(
-        "Select Features",
-        df.columns,
-        default=["Age", "AnnualIncome", "SpendingScore"]
+else:
+    st.warning("Upload a CSV file to continue")
+    st.stop()
+
+
+# -------- Show data --------
+
+st.subheader("Dataset")
+st.write(df.head())
+
+
+# -------- Feature selection --------
+
+features = st.multiselect(
+    "Select Features",
+    df.columns,
+    default=df.columns[1:]
+)
+
+data = df[features]
+
+
+# -------- Algorithm --------
+
+algo = st.selectbox(
+    "Algorithm",
+    ["KMeans", "Hierarchical", "DBSCAN"]
+)
+
+k = st.slider("Clusters", 2, 6, 3)
+
+
+# -------- Run --------
+
+if st.button("Run Clustering"):
+
+    if algo == "KMeans":
+        labels = kmeans_cluster(data, k)
+
+    elif algo == "Hierarchical":
+        labels = hierarchical_cluster(data, k)
+
+    else:
+        labels = dbscan_cluster(data)
+
+    df["Cluster"] = labels
+
+    st.success("Clustering Done")
+
+    st.write(df)
+
+    # PCA
+
+    pca_data = apply_pca(data)
+
+    plt.figure()
+
+    plt.scatter(
+        pca_data[:, 0],
+        pca_data[:, 1],
+        c=labels
     )
 
-    data = df[features]
+    st.pyplot(plt)
 
-    algo = st.selectbox(
-        "Select Algorithm",
-        ["KMeans", "Hierarchical", "DBSCAN"]
+    # Stats
+
+    st.subheader("Cluster Statistics")
+
+    st.write(df.groupby("Cluster").mean())
+
+    # Download
+
+    csv = df.to_csv(index=False)
+
+    st.download_button(
+        "Download Result",
+        csv,
+        "clustered.csv"
     )
-
-    k = st.slider("Clusters", 2, 6, 3)
-
-    if st.button("Run Clustering"):
-
-        if algo == "KMeans":
-            labels = kmeans_cluster(data, k)
-
-        elif algo == "Hierarchical":
-            labels = hierarchical_cluster(data, k)
-
-        else:
-            labels = dbscan_cluster(data)
-
-        df["Cluster"] = labels
-
-        st.success("Done")
-
-        st.write(df)
-
-        # PCA
-        pca_data = apply_pca(data)
-
-        plt.scatter(
-            pca_data[:,0],
-            pca_data[:,1],
-            c=labels
-        )
-
-        st.pyplot(plt)
-
-        # stats
-        st.write(df.groupby("Cluster").mean())
-
-        csv = df.to_csv(index=False)
-
-        st.download_button(
-            "Download CSV",
-            csv,
-            "clustered.csv"
-        )
